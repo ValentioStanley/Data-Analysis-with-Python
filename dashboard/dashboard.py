@@ -5,32 +5,14 @@ import streamlit as st
 from babel.numbers import format_currency
 sns.set(style='dark')
 
-def create_byseason_df1(df1):
-    byseason_df1 = df1.groupby(by="season_day").weekday.count().reset_index()
-    byseason_df1.rename(columns={
-        "weekday": "hariKerja"
-    }, inplace=True)
-    byseason_df1.replace({1: "Springer", 2: "Summer", 3: "Fall", 4: "Winter"}, inplace=True)
-    return byseason_df1
-
-def create_byseason_df2(df2):
-    byseason_df2 = df2.groupby(by="season_hour").hr.count().reset_index()
-    byseason_df2.rename(columns={
-        "hr": "jam"
-    }, inplace=True)
-    byseason_df2.replace({1: "Springer", 2: "Summer", 3: "Fall", 4: "Winter"}, inplace=True)
-    return byseason_df2
-
 main_data = pd.read_csv('dashboard\main_data.csv')
 main_df = pd.DataFrame(main_data)
-df1 = main_df[['season_day', 'weekday']].dropna(axis=0, ignore_index=True)
-df2 = main_df[['season_hour', 'hr']].dropna(axis=0, ignore_index=True)
+df1 = main_df[['tgl_hari_krj','musim_hari', 'hari_kerja', 'jml_musim_hari']].dropna(axis=0, ignore_index=True)
+df2 = main_df[['tgl_hari_jam','musim_jam', 'jam', 'jml_musim_jam']].dropna(axis=0, ignore_index=True)
 
-create_byseason_df1(df1)
-create_byseason_df2(df2)
 st.header('Data: Bike Sharing :partly_sunny_rain:')
  
-st.subheader("Demografi Cuaca")
+st.subheader("Demografi Musim")
  
 col1, col2 = st.columns(2)
  
@@ -38,30 +20,49 @@ with col1:
     fig, ax = plt.subplots(figsize=(20, 10))
  
     sns.barplot(
-        x="season_day", 
-        y="hariKerja", 
-        data=create_byseason_df1(df1).sort_values(by="hariKerja", ascending=False),
+        x="musim_hari", 
+        y="hari_kerja", 
+        data=df1.sort_values(by="jml_musim_hari", ascending=True),
         ax=ax
     )
-    ax.set_title("Cuaca paling sering muncul pada berbagai kerja", loc="center", fontsize=50)
-    ax.set_ylabel(None)
-    ax.set_xlabel(None)
+    ax.set_title("Frekuensi varian musim pada weekday", loc="center", fontsize=50)
+    ax.set_ylabel("Hari Kerja", fontsize = 35)
+    ax.set_xlabel("Frekuensi Musim", fontsize = 35)
     ax.tick_params(axis='x', labelsize=35)
-    ax.tick_params(axis='y', labelsize=30)
+    ax.tick_params(axis='y', labelsize=35)
     st.pyplot(fig)
  
 with col2:
     fig, ax = plt.subplots(figsize=(20, 10))
  
     sns.barplot(
-        x="season_hour", 
-        y="jam", 
-        data=create_byseason_df2(df2).sort_values(by="jam", ascending=False),
+        x="musim_jam", 
+        y="jml_musim_jam", 
+        data=df2.sort_values(by="jml_musim_jam", ascending=True),
         ax=ax
     )
-    ax.set_title("Cuaca paling sering muncul pada berbagai jam", loc="center", fontsize=50)
-    ax.set_ylabel(None)
-    ax.set_xlabel(None)
+    ax.set_title("Frekuensi musim dingin", loc="center", fontsize=50)
+    ax.set_ylabel("Jumlah musim dingin", fontsize = 35)
+    ax.set_xlabel("Musim dingin", fontsize = 35)
     ax.tick_params(axis='x', labelsize=35)
-    ax.tick_params(axis='y', labelsize=30)
+    ax.tick_params(axis='y', labelsize=35)
     st.pyplot(fig)
+
+datetime_col = ["tgl_hari_krj","tgl_hari_jam"]
+for column in datetime_col:
+    main_data[column] = pd.to_datetime(main_data[column])
+main_data.info()   
+    
+min_date = main_data["tgl_hari_jam"].min()
+max_date = main_data["tgl_hari_jam"].max()
+ 
+with st.sidebar:
+    st.header('Pilih tanggal hari')
+    start_date, end_date = st.date_input(
+        label='Jangkauan Waktu',min_value=min_date,
+        max_value=max_date,
+        value=[min_date, max_date]
+    )
+    
+main_df = main_data[(main_data["tgl_hari_jam"] >= str(start_date)) & 
+                (main_data["tgl_hari_jam"] <= str(end_date))]
